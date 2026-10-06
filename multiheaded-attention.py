@@ -5,6 +5,8 @@ from torch import nn
 from labml import tracker 
 
 
+# https://nn.labml.ai/transformers/mha.html
+
 class LayerHelper(nn.Module):
     def __init__(self, d_model: int, heads: int, d_k: int, bias: bool):
         super().__init__()
@@ -58,7 +60,32 @@ class MultiHeadAttention(nn.Module):
                 key: torch.Tensor, 
                 value: torch.Tensor, 
                 mask: Optional[torch.Tensor] = None ):
+        
         seq_len, batch_size, _ = query.shape 
 
         if mask is not None: 
             mask = self.prepare_mask(mask, query.shape, key.shape)
+
+        query = self.query(query)
+        key   = self.key(key)
+        value = self.value(value)
+
+        scores = self.get_scores(query, key)
+        scores *= self.scale 
+
+        if mask is not None:
+            scores = scores.masked_fill(mask == 0, float('-inf'))
+
+        attn = self.softmax(scores)
+
+        attn = self.dropout(attn)
+
+        x = torch.einsum("ijbh,jbhd->ibhd", attn, value)
+
+        self.attn = attn.detach()
+
+        x = x.reshape(seq_len, batch_size, -1)
+
+        return self.output(x)
+
+
