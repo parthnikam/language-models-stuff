@@ -158,6 +158,8 @@ class EmbeddingsWithLearnedPositionalEncoding(nn.Module):
 
     def __init__(self, d_model: int, n_vocab: int, max_len: int = 5000):
         super().__init__()
+        self.linear_diffusion_layer = nn.Embedding(n_vocab, d_model)
+        self.queries_dim = d_model * n_vocab
         self.linear = nn.Embedding(n_vocab, d_model)
         self.d_model = d_model
         self.positional_encodings = nn.Parameter(torch.zeros(max_len, 1, d_model), requires_grad=True)
@@ -344,7 +346,7 @@ def _demo() -> None:
     if not torch.allclose(hidden[:-1], hidden_changed[:-1]):
         raise RuntimeError("decoder read a future target token")
 
-    attn = model.decoder.layers[0].self_attn.attn
+    attn = getattr(model.decoder.layers[0].self_attn, "attn", None)
     if attn is None:
         raise RuntimeError("decoder self-attention was not stored")
     future = torch.triu(torch.ones(tgt_len, tgt_len, dtype=torch.bool), diagonal=1)
