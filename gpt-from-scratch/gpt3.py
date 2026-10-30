@@ -136,7 +136,7 @@ class TransformerBlock(nn.Module):
     def forward(self, x, past_key_value=None, use_cache=None):
         attn_out, present = self.attn(
             self.ln1(x),
-            past_key_vaule=past_key_value,
+            past_key_value=past_key_value,
             use_cache=use_cache
         )
         
